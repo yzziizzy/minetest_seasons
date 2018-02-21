@@ -61,20 +61,25 @@ function reg_changes(ssn, oldmod, oldname)
 	
 end
 
-function reg_generic(oldmod, oldname, tiles, drops)
+
+
+
+function reg_generic(oldmod, oldname, tiles, drops, default_season)
 	local old = oldmod..":"..oldname
+	local ds = default_season or "summer"
 	
 	function reg(ssn)
 		local new
-		if ssn == "summer" then -- minetest is in "summer" by default
+		if ssn == ds then -- minetest is in "summer" by default
 			new = old
 		else
 			new = "seasons:"..ssn.."_"..oldmod.."_"..oldname
 		end
 		
 		
-		if ssn ~= "summer" then
+		if ssn ~= ds then
 			local def = deepclone(minetest.registered_nodes[old])
+			def.groups.not_in_creative_inventory = 1
 			
 			if tiles and tiles[ssn] then
 				def.tiles = tiles[ssn]
@@ -213,6 +218,80 @@ reg_changes("summer", "default", "aspen_leaves")
 
 
 
+
+-- flowers bloom in spring, not summer
+
+reg_generic("flowers", "rose", nil, 
+	{ -- drops
+		spring = {"flowers:rose"},
+		summer = {}, -- nothin
+		fall = {}, -- TODO: rosehip
+		winter = {}, -- TODO: rose bud
+	}, 
+	"spring")
+
+
+reg_generic("flowers", "tulip", 
+	{
+		summer = {"seasons_summer_flowers_tulip.png"},
+		fall = {"seasons_fall_flowers_tulip.png"},
+		winter = {"seasons_winter_flowers_tulip.png"}
+	}, 
+	{ -- drops
+		--spring = {"flowers:tulip"},
+		summer = {}, -- nothin
+		fall = {}, -- nothin
+		winter = {}, -- TODO: bulb
+	}, 
+	"spring")
+	
+reg_generic("flowers", "tulip_black", 
+	{
+		summer = {"seasons_summer_flowers_tulip.png"},
+		fall = {"seasons_fall_flowers_tulip.png"},
+		winter = {"seasons_winter_flowers_tulip.png"}
+	}, 
+	{ -- drops
+		--spring = {"flowers:tulip_black"},
+		summer = {}, -- nothin
+		fall = {}, -- nothin
+		winter = {}, -- TODO: bulb
+	}, 
+	"spring")
+
+
+local def
+-- dandelions are done manually because the default ones represent two seasons
+-- fall
+def = deepclone(minetest.registered_nodes["flowers:dandelion_yellow"])
+def.groups.not_in_creative_inventory = 1
+def.tiles = {"seasons_fall_flowers_dandelion.png"}
+def.drops = {}
+minetest.register_node("seasons:fall_flowers_dandelion", def)
+-- winter
+def = deepclone(minetest.registered_nodes["flowers:dandelion_yellow"])
+def.groups.not_in_creative_inventory = 1
+def.tiles = {"seasons_winter_flowers_dandelion.png"}
+def.drops = {}
+minetest.register_node("seasons:winter_flowers_dandelion", def)
+-- lookups
+core_lookup["seasons:winter_flowers_dandelion"] = "flowers:dandelion_yellow"
+core_lookup["seasons:fall_flowers_dandelion"] = "flowers:dandelion_yellow"
+core_lookup["flowers:dandelion_yellow"] = "flowers:dandelion_yellow"
+core_lookup["flowers:dandelion_white"] = "flowers:dandelion_yellow" -- this is correct
+changes_lookup["fall"]["flowers:dandelion_yellow"] = "seasons:fall_flowers_dandelion"
+changes_lookup["winter"]["flowers:dandelion_yellow"] = "seasons:winter_flowers_dandelion"
+changes_lookup["spring"]["flowers:dandelion_yellow"] = "flowers:dandelion_yellow"
+changes_lookup["summer"]["flowers:dandelion_yellow"] = "flowers:dandelion_white"
+table.insert(abm_list, "seasons:fall_flowers_dandelion")
+table.insert(abm_list, "seasons:winter_flowers_dandelion")
+table.insert(abm_list, "flowers:dandelion_yellow")
+table.insert(abm_list, "flowers:dandelion_white")
+
+
+
+
+
 local get_season_data = function() 
 	local t = minetest.get_gametime()
 	
@@ -280,7 +359,7 @@ minetest.register_abm({
 		local core = core_lookup[node.name]
 		local name = changes_lookup[s][core]
 
-		if name == nil then return end
+		if name == nil or name == node.name then return end
 		
 		minetest.set_node(pos, {name = name})
 		
