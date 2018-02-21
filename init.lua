@@ -126,6 +126,10 @@ reg_generic("default", "bush_leaves", {
 		winter = {"seasons_winter_default_leaves_simple.png"},
 	}, 
 	nil)
+	
+reg_generic("default", "jungleleaves", nil, nil)
+	
+reg_generic("default", "acacia_leaves", nil, nil)
 
 --[[
 saplings
@@ -368,3 +372,90 @@ minetest.register_abm({
 
 
 
+
+
+
+
+-- water freezing
+
+def = deepclone(minetest.registered_nodes["default:ice"])
+def.groups.not_in_creative_inventory = 1
+def.drops = {"default:ice"}
+minetest.register_node("seasons:ice_water_source", def)
+
+def = deepclone(minetest.registered_nodes["default:ice"])
+def.groups.not_in_creative_inventory = 1
+def.drops = {}
+minetest.register_node("seasons:ice_water_flowing", def)
+
+def = deepclone(minetest.registered_nodes["default:ice"])
+def.groups.not_in_creative_inventory = 1
+def.drops = {"default:ice"} -- TODO: riverwater ice
+minetest.register_node("seasons:ice_river_water_source", def)
+
+def = deepclone(minetest.registered_nodes["default:ice"])
+def.groups.not_in_creative_inventory = 1
+def.drops = {}
+minetest.register_node("seasons:ice_river_water_flowing", def)
+
+local ice_lookup = {
+	["default:water_source"] = "seasons:ice_water_source",
+	["default:water_flowing"] = "seasons:ice_water_flowing",
+	["default:river_water_source"] = "seasons:ice_river_water_source",
+	["default:river_water_flowing"] = "seasons:ice_river_water_flowing",
+}
+local water_lookup = {
+	["seasons:ice_water_source"] = "default:water_source",
+	["seasons:ice_water_flowing"] = "default:water_flowing",
+	["seasons:ice_river_water_source"] = "default:river_water_source",
+	["seasons:ice_river_water_flowing"] = "default:river_water_flowing",
+}
+
+
+minetest.register_abm({
+	label = "Water Freeze",
+	nodenames = {
+		"default:water_source",
+		"default:water_flowing",
+		"default:river_water_source",
+		"default:river_water_flowing",
+	},
+	neighbors = "air",
+	interval = 1,
+	chance = 5,
+	catch_up = true,
+	action = function(pos, node)
+		local s, progress = get_season()
+
+		local name
+		if s ~= "winter" then
+			return
+		end
+		
+		minetest.set_node(pos, {name = ice_lookup[node.name]})
+		
+	end,
+})
+minetest.register_abm({
+	label = "Water Thaw",
+	nodenames = {
+		"seasons:ice_water_source",
+		"seasons:ice_water_flowing",
+		"seasons:ice_river_water_source",
+		"seasons:ice_river_water_flowing",
+	},
+	interval = 1,
+	chance = 5,
+	catch_up = true,
+	action = function(pos, node)
+		local s, progress = get_season()
+
+		local name
+		if s == "winter" then
+			return
+		end
+		
+		minetest.set_node(pos, {name = water_lookup[node.name]})
+		
+	end,
+})
