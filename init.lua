@@ -1,4 +1,7 @@
 
+seasons = {}
+
+
 function deepclone(t)
 	if type(t) ~= "table" then 
 		return t 
@@ -42,11 +45,16 @@ local changes_lookup = {
 	winter = {},
 }
 
+local function splitname(name)
+	local c = string.find(name, ":", 1)
+	return string.sub(name, 1, c - 1), string.sub(name, c + 1, string.len(name))
+end
+
 
 
 function reg_changes(ssn, oldmod, oldname)
 	local old = oldmod..":"..oldname
-	local new = "seasons:"..ssn.."_"..oldname
+	local new = "seasons:"..ssn.."_"..oldmod.."_"..oldname
 
 	core_lookup[old] = old
 	if ssn == "summer" then -- minetest is in "summer" by default
@@ -68,7 +76,7 @@ function reg_generic(oldmod, oldname, tiles, drops, default_season)
 	local old = oldmod..":"..oldname
 	local ds = default_season or "summer"
 	
-	function reg(ssn)
+	local function reg(ssn)
 		local new
 		if ssn == ds then -- minetest is in "summer" by default
 			new = old
@@ -94,7 +102,7 @@ function reg_generic(oldmod, oldname, tiles, drops, default_season)
 			minetest.register_node(new, def)
 		end
 		
-		
+-- 		print("new: "..new.." old: "..old)
 		core_lookup[new] = old
 		changes_lookup[ssn][old] = new
 		table.insert(abm_list, new)
@@ -128,8 +136,27 @@ reg_generic("default", "bush_leaves", {
 	nil)
 	
 reg_generic("default", "jungleleaves", nil, nil)
-	
+default.register_leafdecay({
+	trunks = {"default:jungletree"},
+	leaves = {
+		"seasons:winter_default_jungleleaves",
+		"seasons:fall_default_jungleleaves",
+		"seasons:spring_default_jungleleaves",
+	},
+	radius = 2,
+})
+
 reg_generic("default", "acacia_leaves", nil, nil)
+default.register_leafdecay({
+	trunks = {"default:acacia_tree"},
+	leaves = {
+		"seasons:winter_default_acacia_leaves",
+		"seasons:fall_default_acacia_leaves",
+		"seasons:spring_default_acacia_leaves",
+	},
+	radius = 2,
+})
+
 
 --[[
 saplings
@@ -153,7 +180,7 @@ falling leaf particles
 function reg_leaves(ssn)
 	reg_changes(ssn, "default", "leaves")
 	
-	minetest.register_node("seasons:"..ssn.."_leaves", {
+	minetest.register_node("seasons:"..ssn.."_default_leaves", {
 		description = "Apple Tree Leaves",
 		drawtype = "allfaces_optional",
 		waving = 1,
@@ -174,13 +201,19 @@ function reg_leaves(ssn)
 				{
 					-- player will get leaves only if he get no saplings,
 					-- this is because max_items is 1
-					items = {'seasons:'..ssn..'_leaves'},
+					items = {'seasons:'..ssn..'_default_leaves'},
 				}
 			}
 		},
 		sounds = default.node_sound_leaves_defaults(),
 
 		after_place_node = default.after_place_leaves,
+	})
+	
+	default.register_leafdecay({
+		trunks = {"default:tree"},
+		leaves = {"seasons:"..ssn.."_default_leaves"},
+		radius = 2,
 	})
 end
 reg_leaves("spring")
@@ -192,7 +225,7 @@ reg_changes("summer", "default", "leaves")
 function reg_aspen_leaves(ssn)
 	reg_changes(ssn, "default", "aspen_leaves")
 	
-	minetest.register_node("seasons:"..ssn.."_aspen_leaves", {
+	minetest.register_node("seasons:"..ssn.."_default_aspen_leaves", {
 		description = "Aspen Tree Leaves",
 		drawtype = "allfaces_optional",
 		tiles = {"seasons_"..ssn.."_aspen_leaves.png"},
@@ -205,12 +238,18 @@ function reg_aspen_leaves(ssn)
 			max_items = 1,
 			items = {
 				{items = {"default:aspen_sapling"}, rarity = 20},
-				{items = {"seasons:"..ssn.."_aspen_leaves"}}
+				{items = {"seasons:"..ssn.."_default_aspen_leaves"}}
 			}
 		},
 		sounds = default.node_sound_leaves_defaults(),
 
 		after_place_node = default.after_place_leaves,
+	})
+	
+	default.register_leafdecay({
+		trunks = {"default:aspen_tree"},
+		leaves = {"seasons:"..ssn.."_default_aspen_leaves"},
+		radius = 3,
 	})
 end
 
@@ -249,6 +288,7 @@ reg_generic("flowers", "tulip",
 	}, 
 	"spring")
 	
+--[[
 reg_generic("flowers", "tulip_black", 
 	{
 		summer = {"seasons_summer_flowers_tulip.png"},
@@ -262,7 +302,7 @@ reg_generic("flowers", "tulip_black",
 		winter = {}, -- TODO: bulb
 	}, 
 	"spring")
-
+]]
 
 local def
 -- dandelions are done manually because the default ones represent two seasons
@@ -326,6 +366,7 @@ end
 
 
 local get_season = function() 
+	local season, time
 	local t = minetest.get_gametime()
 	
 	local s = (t % SEASONS_YEARLEN) / SEASONS_YEARLEN
@@ -348,6 +389,7 @@ local get_season = function()
 end
 
 
+seasons.get_season = get_season
 
 
 minetest.register_abm({
@@ -459,3 +501,35 @@ minetest.register_abm({
 		
 	end,
 })
+
+
+
+local last_season = {
+	spring = "winter",
+	summer = "spring",
+	fall = "summer",
+	winter = "fall",
+}
+
+minetest.register_lbm({
+	name = "seasons:catchup",
+	nodenames = abm_list,
+	run_at_every_load = true,
+	action = function(pos, node)
+		local s, progress = get_season()
+		
+		if math.random() > (progress * 1.2) then
+			-- use last season's node
+			s = last_season[s]
+		end
+
+		--local name = changes[s][node.name]
+		local core = core_lookup[node.name]
+		local name = changes_lookup[s][core]
+
+		if name == nil or name == node.name then return end
+		
+		minetest.set_node(pos, {name = name})
+	end,
+})
+
