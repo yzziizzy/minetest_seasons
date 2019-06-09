@@ -385,7 +385,7 @@ local get_season = function()
 		time = (s - .7) / .3
 	end
 
-	return season, time
+	return season, time, s
 end
 
 
@@ -532,4 +532,32 @@ minetest.register_lbm({
 		minetest.set_node(pos, {name = name})
 	end,
 })
+
+
+
+
+if minetest.global_exists("storms") then
+	
+	storms.register_heat_bias(function(pos, orig) 
+		local season, stime, spin = get_season()
+		
+		spin = math.sin(spin * 2 * math.pi) * 20
+		
+-- 		print("heat bias: ".. spin)
+		return spin
+	end)
+	
+	
+	--[[
+	storms.register_freq_bias(function(pos, orig) 
+		local season, stime, spin = get_season()
+		
+		spin = math.sin(spin * 2 * math.pi)
+		
+		print("freq bias: ".. spin)
+		return spin
+	end)
+	]]
+	
+end
 
