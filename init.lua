@@ -25,7 +25,7 @@ end
 
 
 
-local SEASONS_YEARLEN = 60 * 2
+local SEASONS_YEARLEN = 60 * 60 * 2
 
 
 
@@ -69,6 +69,19 @@ function reg_changes(ssn, oldmod, oldname)
 	
 end
 
+function reg_custom(ssn, old, new)
+	core_lookup[old] = old
+	if ssn == "summer" then -- minetest is in "summer" by default
+		changes_lookup[ssn][old] = old
+		table.insert(abm_list, old)
+	else
+		print(dump(core_lookup))
+		core_lookup[new] = old
+		changes_lookup[ssn][old] = new
+		table.insert(abm_list, new)
+	end
+end
+seasons.reg_custom = reg_custom
 
 
 
