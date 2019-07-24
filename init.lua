@@ -7,7 +7,7 @@ function deepclone(t)
 		return t 
 	end
 	
-	local meta = getmetatable(t)
+-- 	local meta = getmetatable(t)
 	local target = {}
 	
 	for k, v in pairs(t) do
@@ -18,7 +18,7 @@ function deepclone(t)
 		end
 	end
 	
-	setmetatable(target, meta)
+	--setmetatable(target, meta)
 	
 	return target
 end
@@ -109,7 +109,12 @@ function reg_generic(oldmod, oldname, tiles, drops, default_season)
 			end
 			
 			if drops and drops[ssn] then 
-				def.drops = drops[ssn]
+				def.drop = drops[ssn]
+			end
+			
+			if oldname == "dirt_with_grass" then
+				
+				print(dump(def))
 			end
 			
 			minetest.register_node(new, def)
@@ -152,23 +157,28 @@ reg_generic("default", "jungleleaves", nil, nil)
 default.register_leafdecay({
 	trunks = {"default:jungletree"},
 	leaves = {
+		"default:jungleleaves",
 		"seasons:winter_default_jungleleaves",
 		"seasons:fall_default_jungleleaves",
 		"seasons:spring_default_jungleleaves",
 	},
-	radius = 2,
+	radius = 3,
 })
 
 reg_generic("default", "acacia_leaves", nil, nil)
 default.register_leafdecay({
 	trunks = {"default:acacia_tree"},
 	leaves = {
+		"default:acacia_leaves",
 		"seasons:winter_default_acacia_leaves",
 		"seasons:fall_default_acacia_leaves",
 		"seasons:spring_default_acacia_leaves",
 	},
 	radius = 2,
 })
+
+reg_generic("default", "aspen_leaves", nil, nil)
+
 
 
 --[[
@@ -223,11 +233,11 @@ function reg_leaves(ssn)
 		after_place_node = default.after_place_leaves,
 	})
 	
-	default.register_leafdecay({
-		trunks = {"default:tree"},
-		leaves = {"seasons:"..ssn.."_default_leaves"},
-		radius = 2,
-	})
+-- 	default.register_leafdecay({
+-- 		trunks = {"default:tree"},
+-- 		leaves = {"seasons:"..ssn.."_default_leaves"},
+-- 		radius = 2,
+-- 	})
 end
 reg_leaves("spring")
 reg_leaves("fall")
@@ -259,11 +269,11 @@ function reg_aspen_leaves(ssn)
 		after_place_node = default.after_place_leaves,
 	})
 	
-	default.register_leafdecay({
-		trunks = {"default:aspen_tree"},
-		leaves = {"seasons:"..ssn.."_default_aspen_leaves"},
-		radius = 3,
-	})
+-- 	default.register_leafdecay({
+-- 		trunks = {"default:aspen_tree"},
+-- 		leaves = {"seasons:"..ssn.."_default_aspen_leaves"},
+-- 		radius = 3,
+-- 	})
 end
 
 reg_aspen_leaves("spring")
@@ -408,8 +418,8 @@ seasons.get_season = get_season
 minetest.register_abm({
 	label = "Leaf Change",
 	nodenames = abm_list,
-	interval = 1,
-	chance = 5,
+	interval = 5,
+	chance = 180,
 	catch_up = true,
 	action = function(pos, node)
 		local s, progress = get_season()
@@ -476,8 +486,8 @@ minetest.register_abm({
 		"default:river_water_flowing",
 	},
 	neighbors = "air",
-	interval = 1,
-	chance = 5,
+	interval = 5,
+	chance = 180,
 	catch_up = true,
 	action = function(pos, node)
 		local s, progress = get_season()
@@ -499,8 +509,8 @@ minetest.register_abm({
 		"seasons:ice_river_water_source",
 		"seasons:ice_river_water_flowing",
 	},
-	interval = 1,
-	chance = 5,
+	interval = 5,
+	chance = 180,
 	catch_up = true,
 	action = function(pos, node)
 		local s, progress = get_season()
@@ -574,3 +584,46 @@ if minetest.global_exists("storms") then
 	
 end
 
+
+
+
+
+
+
+
+
+
+
+default.register_leafdecay({
+	trunks = {"default:tree"},
+	leaves = {
+		"default:apple",
+		"default:leaves",
+		"seasons:winter_default_leaves",
+		"seasons:fall_default_leaves",
+		"seasons:spring_default_leaves",
+	},
+	radius = 2,
+})
+
+default.register_leafdecay({
+	trunks = {"default:aspen_tree"},
+	leaves = {
+		"default:aspen_leaves",
+		"seasons:winter_default_acacia_leaves",
+		"seasons:fall_default_acacia_leaves",
+		"seasons:spring_default_acacia_leaves",
+	},
+	radius = 3,
+})
+
+default.register_leafdecay({
+	trunks = {"default:bush_stem"},
+	leaves = {
+		"default:bush_leaves"
+		"seasons:winter_default_bush_leaves",
+		"seasons:fall_default_bush_leaves",
+		"seasons:spring_default_bush_leaves",
+	},
+	radius = 1,
+})
