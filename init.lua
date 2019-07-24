@@ -620,7 +620,7 @@ default.register_leafdecay({
 default.register_leafdecay({
 	trunks = {"default:bush_stem"},
 	leaves = {
-		"default:bush_leaves"
+		"default:bush_leaves",
 		"seasons:winter_default_bush_leaves",
 		"seasons:fall_default_bush_leaves",
 		"seasons:spring_default_bush_leaves",
